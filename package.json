@@ -1,0 +1,19 @@
+{
+  "name": "telegram-inline-ai-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram inline-mode bot that answers AI prompts",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --import tsx --test test/",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.0"
+  }
+}

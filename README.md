@@ -51,13 +51,17 @@ Check a box only with observed proof (test output, run log, or screenshot path).
 - [x] First commit in English
 
 ### M1 - Core logic (mock provider)
-- [ ] Project scaffold: `package.json`, `tsconfig.json`, `.gitignore`
-- [ ] `LlmProvider` interface and `MockProvider`
-- [ ] Inline query handler returns one result per query (unit test)
-- [ ] Empty or whitespace query returns no result (unit test)
-- [ ] Daily limiter per user id, resets by UTC date (unit test)
-- [ ] Provider error or timeout maps to a friendly result (unit test)
-- [ ] `npm test` passes offline
+- [x] Project scaffold: `package.json`, `tsconfig.json`, `.gitignore` (`npm run typecheck` exit 0)
+- [x] `LlmProvider` interface and `MockProvider` (`src/llm.ts`)
+- [x] Inline query handler returns one result per query (unit test: `test/handler.test.ts`)
+- [x] Empty or whitespace query returns no result (unit test)
+- [x] Daily limiter per user id, resets by UTC date (unit test)
+- [x] Provider error or timeout maps to a friendly result (unit test)
+- [x] `npm test` passes offline (8/8 tests)
+
+Implementation notes (M1):
+- Tests run with `tsx` because Node does not map `.js` imports to `.ts` files on its own.
+- The limiter is in memory for now. Persistence to `data/usage.json` is still pending and will be added in M2.
 
 ### M2 - Telegram wiring
 - [ ] Bot starts in polling mode with token from `BOT_TOKEN` env var
