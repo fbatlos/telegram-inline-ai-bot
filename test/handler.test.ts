@@ -1,8 +1,8 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
 import { handleInlineQuery } from "../src/handler.js";
-import { MockProvider, type LlmProvider } from "../src/llm.js";
 import { DailyLimiter } from "../src/limiter.js";
+import { type LlmProvider, MockProvider } from "../src/llm.js";
 
 const q = (query: string, fromId = 1) => ({ id: "q1", query, fromId });
 
@@ -45,35 +45,66 @@ test("limiter counts users separately", () => {
   assert.equal(limiter.tryConsume(2), true);
 });
 
-test("provider error maps to a friendly result and does not throw", async () => {
+test("provider error maps to a friendly result, is logged, and does not throw", async () => {
+  const logs: string[] = [];
   const failing: LlmProvider = {
     generate: async () => {
-      throw new Error("upstream 500");
+      throw new Error("Groq request failed with status 401");
     },
   };
-  const res = await handleInlineQuery(q("hola"), { provider: failing, limiter: new DailyLimiter(10) });
+  const res = await handleInlineQuery(q("hola"), {
+    provider: failing,
+    limiter: new DailyLimiter(10),
+    logError: (m) => logs.push(m),
+  });
   assert.equal(res[0].title, "Temporarily unavailable");
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /Groq request failed with status 401/);
 });
 
-test("provider timeout maps to a friendly result", async () => {
+test("failure log never contains the user's prompt or an API key", async () => {
+  const logs: string[] = [];
+  const secretPrompt = "my-private-question-XYZ";
+  const failing: LlmProvider = {
+    generate: async () => {
+      throw new Error("Groq request failed with status 500");
+    },
+  };
+  await handleInlineQuery(q(secretPrompt), {
+    provider: failing,
+    limiter: new DailyLimiter(10),
+    logError: (m) => logs.push(m),
+  });
+  assert.equal(logs.length, 1);
+  assert.ok(!logs[0].includes(secretPrompt), "log must not contain the user prompt");
+  assert.ok(!logs[0].includes("gsk_"), "log must not contain an API key");
+});
+
+test("provider timeout maps to a friendly result and logs the timeout distinctly", async () => {
+  const logs: string[] = [];
+  // Mirrors real fetch: an aborted request rejects with signal.reason (TimeoutError for AbortSignal.timeout).
   const slow: LlmProvider = {
     generate: (_p, signal) =>
       new Promise((_resolve, reject) => {
-        signal?.addEventListener("abort", () => reject(new Error("aborted")));
+        signal?.addEventListener("abort", () => reject(signal.reason));
       }),
   };
   const res = await handleInlineQuery(q("hola"), {
     provider: slow,
     limiter: new DailyLimiter(10),
     timeoutMs: 20,
+    logError: (m) => logs.push(m),
   });
   assert.equal(res[0].title, "Temporarily unavailable");
+  assert.equal(logs.length, 1);
+  assert.match(logs[0], /timed out after 20 ms/);
 });
 
 test("empty provider answer returns a retry message", async () => {
   const res = await handleInlineQuery(q("hola"), {
     provider: new MockProvider(() => "   "),
     limiter: new DailyLimiter(10),
+    logError: () => {},
   });
   assert.equal(res[0].title, "No answer");
 });

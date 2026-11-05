@@ -5,13 +5,20 @@
   "description": "Telegram inline-mode bot that answers AI prompts",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.9"
   },
   "scripts": {
+    "start": "node --env-file-if-exists=.env --import tsx src/main.ts",
     "test": "node --import tsx --test test/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "dependencies": {
+    "grammy": "^1.46.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.5",
     "@types/node": "^22.0.0",
     "tsx": "^4.23.15",
     "typescript": "^5.6.0"
